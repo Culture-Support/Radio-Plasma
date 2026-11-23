@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma Spectroscopic Radio — KDE Glassmorphic Audio Deck</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --kde-bg: rgba(16, 20, 26, 0.65);
+            --kde-border: rgba(255, 255, 255, 0.12);
+            --kde-highlight: rgba(61, 174, 233, 0.25);
+            --flame-core: #a7f3d0;
+            --flame-mid: #10b981;
+            --flame-outer: #047857;
+            --flame-glow: rgba(16, 185, 129, 0.55);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030508;
+            color: #eff0f1;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Fullscreen Spectroscopic Space Canvas */
+        #space-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* KDE Breeze Dark Glassmorphic Panel */
+        .kde-glass {
+            background: linear-gradient(145deg, rgba(24, 28, 36, 0.72) 0%, rgba(12, 15, 20, 0.84) 100%);
+            backdrop-filter: blur(22px) saturate(160%);
+            -webkit-backdrop-filter: blur(22px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.75),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+            position: relative;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Green Flame Force Panel Aura & Animation */
+        .flame-force-panel {
+            position: relative;
+        }
+
+        .flame-force-panel::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            padding: 2px;
+            background: linear-gradient(
+                125deg,
+                rgba(16, 185, 129, 0.1),
+                rgba(52, 211, 153, 0.85),
+                rgba(167, 243, 208, 0.95),
+                rgba(5, 150, 105, 0.7),
+                rgba(16, 185, 129, 0.1)
+            );
+            background-size: 300% 300%;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: greenFlameBorder 4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .flame-force-panel::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: inherit;
+            background: radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.28), transparent 70%);
+            filter: blur(14px);
+            opacity: 0.65;
+            animation: flamePulse 2.8s infinite alternate ease-in-out;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .flame-force-active::after {
+            opacity: 1;
+            background: radial-gradient(circle at 50% 100%, rgba(52, 211, 153, 0.48), rgba(16, 185, 129, 0.15) 60%, transparent 80%);
+            animation: flameSurge 1.4s infinite alternate ease-in-out;
+        }
+
+        @keyframes greenFlameBorder {
+            0% { background-position: 0% 50%; filter: hue-rotate(0deg) brightness(1); }
+            50% { background-position: 100% 50%; filter: hue-rotate(-8deg) brightness(1.25); }
+            100% { background-position: 0% 50%; filter: hue-rotate(0deg) brightness(1); }
+        }
+
+        @keyframes flamePulse {
+            0% { transform: scale(0.98) translateY(2px); opacity: 0.45; }
+            100% { transform: scale(1.02) translateY(-3px); opacity: 0.85; }
+        }
+
+        @keyframes flameSurge {
+            0% { transform: scale(0.99) translateY(0px); opacity: 0.75; }
+            100% { transform: scale(1.03) translateY(-5px); opacity: 1; }
+        }
+
+        /* Custom KDE Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 12, 16, 0.4);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(52, 211, 153, 0.35);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(52, 211, 153, 0.65);
+        }
+
+        /* KDE Plasma Button Glow */
+        .kde-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            transition: all 0.2s ease;
+        }
+        .kde-btn:hover {
+            background: rgba(16, 185, 129, 0.18);
+            border-color: rgba(52, 211, 153, 0.55);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+        }
+        .kde-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Station Card Active State */
+        .station-card.active {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.06) 100%);
+            border-color: rgba(52, 211, 153, 0.7);
+            box-shadow: inset 3px 0 0 #34d399, 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Range Slider KDE Styling */
+        input[type="range"].kde-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.12);
+            height: 5px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"].kde-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #34d399;
+            border: 2px solid #ecfdf5;
+            cursor: pointer;
+            box-shadow: 0 0 10px #10b981;
+            transition: transform 0.15s ease;
+        }
+        input[type="range"].kde-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 sm:p-4 md:p-6">
+
+    <!-- Spectroscopic Space Canvas -->
+    <canvas id="space-canvas"></canvas>
+
+    <!-- Top KDE Plasma System Tray Bar -->
+    <header class="relative z-10 w-full max-w-7xl mx-auto mb-4">
+        <div class="kde-glass flame-force-panel rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <!-- KDE Plasma Inspired Emblem -->
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                    <i data-lucide="radio" class="w-5 h-5 text-emerald-300"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">PLASMA SPECTRA RADIO</h1>
+                        <span class="text-[10px] font-mono-tech uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">M3U // 30 CH</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">KDE Glassmorphic Audio Telemetry & Green Flame Force Engine</p>
+                </div>
+            </div>
+
+            <!-- Spectroscopic Wavelength Telemetry Readout -->
+            <div class="flex items-center gap-3 sm:gap-5 text-xs font-mono-tech">
+                <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-lg bg-black/40 border border-white/10">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="text-slate-400">H-ALPHA:</span>
+                    <span id="telemetry-nm" class="text-emerald-300 font-semibold">532.4 nm</span>
+                </div>
+                <button id="export-m3u-btn" class="kde-btn px-3 py-1.5 rounded-xl text-xs font-medium text-emerald-200 flex items-center gap-1.5 cursor-pointer" title="Download all 30 stations as .m3u playlist">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span>Export .M3U</span>
+                </button>
+                <div id="kde-clock" class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 font-semibold">
+                    00:00:00
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Grid -->
+    <main class="relative z-10 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 flex-grow">
+        
+        <!-- Left Deck: Active Radio Receiver & Green Flame Force Core (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            
+            <!-- Primary Receiver Deck -->
+            <div id="main-receiver-panel" class="kde-glass flame-force-panel rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden">
+                
+                <!-- Embedded Green Flame Force Canvas inside Panel -->
+                <canvas id="flame-panel-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-65"></canvas>
+
+                <div class="relative z-10">
+                    <!-- Status Badge & Bitrate -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                            <span id="status-text" class="text-xs font-mono-tech uppercase tracking-wider text-slate-300">STANDBY</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="station-genre-badge" class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
+                                SPACE AMBIENT
+                            </span>
+                            <span id="station-index-badge" class="text-[11px] font-mono-tech px-2 py-0.5 rounded-md bg-white/10 text-slate-300">
+                                #01/30
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Station Title & Stream URL -->
+                    <div class="mb-5">
+                        <h2 id="current-station-name" class="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug drop-shadow">
+                            SomaFM: Deep Space One
+                        </h2>
+                        <p id="current-station-desc" class="text-xs sm:text-sm text-emerald-200/80 mt-1">
+                            Deep ambient electronic, experimental & space music
+                        </p>
+                        <div class="mt-3 flex items-center gap-2 bg-black/45 border border-white/10 rounded-xl px-3 py-1.5">
+                            <i data-lucide="link" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                            <input id="current-stream-url" type="text" readonly value="https://ice1.somafm.com/deepspaceone-128-mp3" class="bg-transparent text-[11px] font-mono-tech text-slate-300 w-full focus:outline-none truncate">
+                            <button id="copy-url-btn" class="text-xs text-emerald-300 hover:text-white px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/40 transition cursor-pointer shrink-0">
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Spectroscopic Audio Visualizer & Flame Wave -->
+                    <div class="relative h-32 sm:h-36 w-full rounded-2xl bg-black/55 border border-emerald-500/25 overflow-hidden mb-5 shadow-inner">
+                        <canvas id="visualizer-canvas" class="w-full h-full block"></canvas>
+                        <div class="absolute top-2 left-3 text-[10px] font-mono-tech text-emerald-300/70 pointer-events-none">
+                            SPECTRAL FLUX ANALYZER
+                        </div>
+                        <div id="visualizer-freq-label" class="absolute bottom-2 right-3 text-[10px] font-mono-tech text-emerald-400/80 pointer-events-none">
+                            44.1 kHz // STEREO
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transport & Volume Controls -->
+                <div class="relative z-10 flex flex-col gap-4">
+                    <div class="flex items-center justify-center gap-4">
+                        <button id="prev-btn" class="kde-btn w-11 h-11 rounded-2xl flex items-center justify-center text-slate-200 cursor-pointer" title="Previous Station">
+                            <i data-lucide="skip-back" class="w-5 h-5"></i>
+                        </button>
+
+                        <button id="play-pause-btn" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-slate-950 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.65)] transition transform hover:scale-105 active:scale-95 cursor-pointer" title="Play / Pause Stream">
+                            <i id="play-icon" data-lucide="play" class="w-7 h-7 fill-current ml-0.5"></i>
+                            <i id="pause-icon" data-lucide="pause" class="w-7 h-7 fill-current hidden"></i>
+                        </button>
+
+                        <button id="next-btn" class="kde-btn w-11 h-11 rounded-2xl flex items-center justify-center text-slate-200 cursor-pointer" title="Next Station">
+                            <i data-lucide="skip-forward" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Volume & Force Intensity -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                        <div class="flex items-center gap-2.5 bg-black/35 px-3 py-2 rounded-xl border border-white/5">
+                            <button id="mute-btn" class="text-emerald-300 hover:text-white cursor-pointer">
+                                <i id="vol-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+                            </button>
+                            <input id="volume-slider" type="range" min="0" max="1" step="0.01" value="0.8" class="kde-slider w-full">
+                            <span id="volume-pct" class="text-[11px] font-mono-tech text-slate-300 w-8 text-right">80%</span>
+                        </div>
+
+                        <div class="flex items-center gap-2.5 bg-black/35 px-3 py-2 rounded-xl border border-white/5">
+                            <i data-lucide="flame" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                            <span class="text-[11px] text-slate-400 shrink-0">Flame</span>
+                            <input id="flame-intensity-slider" type="range" min="0.2" max="2.0" step="0.1" value="1.1" class="kde-slider w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Custom M3U Stream Card -->
+            <div class="kde-glass rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                        Custom M3U / Stream Injector
+                    </span>
+                    <span id="toast-msg" class="text-[11px] font-mono-tech text-emerald-300 opacity-0 transition-opacity duration-300">Ready</span>
+                </div>
+                <form id="custom-stream-form" class="flex flex-col sm:flex-row gap-2">
+                    <input id="custom-name" type="text" placeholder="Station Name" class="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 sm:w-1/3">
+                    <input id="custom-url" type="url" required placeholder="https://stream-url.mp3 or .m3u8" class="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono-tech text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 flex-grow">
+                    <button type="submit" class="kde-btn px-4 py-2 rounded-xl text-xs font-semibold text-emerald-200 shrink-0 cursor-pointer">
+                        Tune
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Right Deck: 30 Curated M3U Radio Stations Matrix (7 cols) -->
+        <section class="lg:col-span-7 kde-glass flame-force-panel rounded-3xl p-4 sm:p-6 flex flex-col max-h-[78vh] lg:max-h-[82vh]">
+            
+            <!-- Header & Genre Filter Pills -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="list-music" class="w-5 h-5 text-emerald-400"></i>
+                        <span>30 Subspace M3U Frequencies</span>
+                    </h3>
+                    <p class="text-xs text-slate-400">Click any channel to ignite stream & spectroscopic resonance</p>
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative w-full sm:w-56">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input id="search-input" type="text" placeholder="Filter 30 stations..." class="w-full bg-black/45 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400">
+                </div>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div id="genre-filters" class="flex items-center gap-1.5 overflow-x-auto py-3 shrink-0">
+                <button data-genre="ALL" class="genre-pill active px-3 py-1 rounded-lg text-xs font-medium bg-emerald-500/25 text-emerald-200 border border-emerald-400/50 cursor-pointer shrink-0">All (30)</button>
+                <button data-genre="Space & Ambient" class="genre-pill px-3 py-1 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-emerald-400/40 cursor-pointer shrink-0">Space & Ambient</button>
+                <button data-genre="Synth & Electronic" class="genre-pill px-3 py-1 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-emerald-400/40 cursor-pointer shrink-0">Synth & Electronic</button>
+                <button data-genre="Chill & Lo-Fi" class="genre-pill px-3 py-1 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-emerald-400/40 cursor-pointer shrink-0">Chill & Lo-Fi</button>
+                <button data-genre="Jazz & Classical" class="genre-pill px-3 py-1 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-emerald-400/40 cursor-pointer shrink-0">Jazz & Classical</button>
+                <button data-genre="World & Eclectic" class="genre-pill px-3 py-1 rounded-lg text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:border-emerald-400/40 cursor-pointer shrink-0">World & Eclectic</button>
+            </div>
+
+            <!-- Scrollable 30 Station Grid -->
+            <div id="station-list" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 overflow-y-auto pr-1 flex-grow content-start">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Hidden HTML5 Audio Element -->
+    <audio id="radio-audio" crossorigin="anonymous" preload="none"></audio>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        /**
+         * 30 Reliable, Direct Public Internet Radio Stream URLs (M3U / Icecast / Shoutcast)
+         */
+        const RADIO_STATIONS = [
+            { id: 1, name: "SomaFM: Deep Space One", genre: "Space & Ambient", desc: "Deep ambient electronic & space music", url: "https://ice1.somafm.com/deepspaceone-128-mp3" },
+            { id: 2, name: "SomaFM: Space Station Soma", genre: "Space & Ambient", desc: "Spaced-out ambient & mid-tempo electronica", url: "https://ice1.somafm.com/spacestation-128-mp3" },
+            { id: 3, name: "SomaFM: Drone Zone", genre: "Space & Ambient", desc: "Atmospheric textures with minimal beats", url: "https://ice1.somafm.com/dronezone-128-mp3" },
+            { id: 4, name: "SomaFM: Mission Control", genre: "Space & Ambient", desc: "Ambient electronic mixed with NASA audio", url: "https://ice1.somafm.com/missioncontrol-128-mp3" },
+            { id: 5, name: "SomaFM: Synphaera Radio", genre: "Space & Ambient", desc: "Ambient & cosmic synthesizer journeys", url: "https://ice1.somafm.com/synphaera-128-mp3" },
+            { id: 6, name: "SomaFM: Dark Zone", genre: "Space & Ambient", desc: "Dark ambient & deep subterranean soundscapes", url: "https://ice1.somafm.com/darkzone-128-mp3" },
+            { id: 7, name: "Nightride FM (Synthwave)", genre: "Synth & Electronic", desc: "Pure outrun, retrowave & cyberpunk synth", url: "https://stream.nightride.fm/nightride.m4a" },
+            { id: 8, name: "Datawave FM", genre: "Synth & Electronic", desc: "Futuristic darksynth & cyber electronic", url: "https://stream.nightride.fm/datawave.m4a" },
+            { id: 9, name: "Chillsynth FM", genre: "Synth & Electronic", desc: "Laid-back nostalgic synthwave & chill", url: "https://stream.nightride.fm/chillsynth.m4a" },
+            { id: 10, name: "SomaFM: DEF CON Radio", genre: "Synth & Electronic", desc: "Hacker conference electronic & industrial beats", url: "https://ice1.somafm.com/defcon-128-mp3" },
+            { id: 11, name: "SomaFM: Beat Blender", genre: "Synth & Electronic", desc: "Late night deep house & downtempo chill", url: "https://ice1.somafm.com/beatblender-128-mp3" },
+            { id: 12, name: "SomaFM: Secret Agent", genre: "Synth & Electronic", desc: "Stylish downtempo lounge & spy grooves", url: "https://ice1.somafm.com/secretagent-128-mp3" },
+            { id: 13, name: "SomaFM: Groove Salad", genre: "Chill & Lo-Fi", desc: "Nicely chilled plate of ambient/downtempo beats", url: "https://ice1.somafm.com/groovesalad-128-mp3" },
+            { id: 14, name: "SomaFM: Groove Salad Classic", genre: "Chill & Lo-Fi", desc: "Classic early-2000s ambient downtempo cuts", url: "https://ice1.somafm.com/gsclassic-128-mp3" },
+            { id: 15, name: "SomaFM: Lush", genre: "Chill & Lo-Fi", desc: "Sensuous and mellow female vocals & chill", url: "https://ice1.somafm.com/lush-128-mp3" },
+            { id: 16, name: "SomaFM: Vaporwaves", genre: "Chill & Lo-Fi", desc: "Hypnagogic mallsoft & nostalgic vaporwave", url: "https://ice1.somafm.com/vaporwaves-128-mp3" },
+            { id: 17, name: "SomaFM: Fluid", genre: "Chill & Lo-Fi", desc: "Instrumental hip-hop, future soul & liquid trap", url: "https://ice1.somafm.com/fluid-128-mp3" },
+            { id: 18, name: "Hirschmilch Chillout", genre: "Chill & Lo-Fi", desc: "German electronic chillout & ambient lounge", url: "https://hirschmilch.de:7001/chillout.mp3" },
+            { id: 19, name: "Radio Paradise (Main Mix)", genre: "World & Eclectic", desc: "Eclectic listener-supported high-fidelity mix", url: "https://stream.radioparadise.com/mp3-192" },
+            { id: 20, name: "Radio Paradise (Mellow Mix)", genre: "Chill & Lo-Fi", desc: "Softer, melodic acoustic & ambient selections", url: "https://stream.radioparadise.com/mellow-192" },
+            { id: 21, name: "Radio Paradise (Global)", genre: "World & Eclectic", desc: "World music, global rhythms & cross-cultural grooves", url: "https://stream.radioparadise.com/global-192" },
+            { id: 22, name: "FIP Radio France", genre: "World & Eclectic", desc: "Parisian eclectic mix of jazz, world, electro & soul", url: "https://icecast.radiofrance.fr/fip-midfi.mp3" },
+            { id: 23, name: "FIP Electro", genre: "Synth & Electronic", desc: "Curated French electronic, house & ambient", url: "https://icecast.radiofrance.fr/fipelectro-midfi.mp3" },
+            { id: 24, name: "FIP Jazz", genre: "Jazz & Classical", desc: "Smooth contemporary & classic Paris jazz", url: "https://icecast.radiofrance.fr/fipjazz-midfi.mp3" },
+            { id: 25, name: "TSF Jazz Paris", genre: "Jazz & Classical", desc: "24/7 pure French & international jazz", url: "https://tsfjazz.ice.infomaniak.ch/tsfjazz-high.mp3" },
+            { id: 26, name: "Swiss Jazz", genre: "Jazz & Classical", desc: "Classic swing, bebop & smooth vocal jazz", url: "https://stream.srg-ssr.ch/m/rsj/mp3_128" },
+            { id: 27, name: "Swiss Classic", genre: "Jazz & Classical", desc: "Symphonic masterpieces & chamber classical", url: "https://stream.srg-ssr.ch/m/rsc_de/mp3_128" },
+            { id: 28, name: "Venice Classic Radio", genre: "Jazz & Classical", desc: "Italian classical music broadcast from Venice", url: "https://uk2.streamingpulse.com/ssl/vcr1" },
+            { id: 29, name: "KEXP 90.3 FM Seattle", genre: "World & Eclectic", desc: "Independent alternative, electronic & global discovery", url: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3" },
+            { id: 30, name: "SomaFM: Suburbs of Goa", genre: "World & Eclectic", desc: "Desi-influenced Asian world beats & psy-chill", url: "https://ice1.somafm.com/suburbsofgoa-128-mp3" }
+        ];
+
+        // State Variables
+        let currentIndex = 0;
+        let isPlaying = false;
+        let currentGenre = 'ALL';
+        let searchQuery = '';
+        let flameIntensity = 1.1;
+        let audioCtx = null;
+        let analyser = null;
+        let dataArray = null;
+        let sourceNode = null;
+        let simulatedEnergy = 0;
+
+        // DOM Elements
+        const audio = document.getElementById('radio-audio');
+        const stationListEl = document.getElementById('station-list');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumePct = document.getElementById('volume-pct');
+        const muteBtn = document.getElementById('mute-btn');
+        const flameSlider = document.getElementById('flame-intensity-slider');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const currentStationName = document.getElementById('current-station-name');
+        const currentStationDesc = document.getElementById('current-station-desc');
+        const currentStreamUrl = document.getElementById('current-stream-url');
+        const stationGenreBadge = document.getElementById('station-genre-badge');
+        const stationIndexBadge = document.getElementById('station-index-badge');
+        const mainReceiverPanel = document.getElementById('main-receiver-panel');
+        const copyUrlBtn = document.getElementById('copy-url-btn');
+        const exportM3uBtn = document.getElementById('export-m3u-btn');
+        const searchInput = document.getElementById('search-input');
+        const toastMsg = document.getElementById('toast-msg');
+
+        // Toast Helper
+        function showToast(text) {
+            toastMsg.textContent = text;
+            toastMsg.style.opacity = '1';
+            setTimeout(() => {
+                toastMsg.style.opacity = '0';
+            }, 2600);
+        }
+
+        // Update KDE Plasma Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('kde-clock').textContent = now.toTimeString().split(' ')[0];
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Setup Web Audio API Analyser (with graceful CORS fallback)
+        function initAudioContext() {
+            if (audioCtx) return;
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 128;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                sourceNode = audioCtx.createMediaElementSource(audio);
+                sourceNode.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            } catch (e) {
+                console.warn('Web Audio API fallback active:', e);
+            }
+        }
+
+        // Render Station List
+        function renderStations() {
+            stationListEl.innerHTML = '';
+            const filtered = RADIO_STATIONS.filter((st) => {
+                const matchesGenre = currentGenre === 'ALL' || st.genre === currentGenre;
+                const matchesQuery = st.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                     st.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                     st.genre.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesGenre && matchesQuery;
+            });
+
+            if (filtered.length === 0) {
+                stationListEl.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs">No matching subspace frequencies found.</div>`;
+                return;
+            }
+
+            filtered.forEach((station) => {
+                const realIdx = RADIO_STATIONS.findIndex(s => s.id === station.id);
+                const isActive = realIdx === currentIndex;
+                const card = document.createElement('button');
+                card.className = `station-card text-left p-3 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-emerald-500/10 hover:border-emerald-400/40 transition-all flex items-center justify-between gap-3 cursor-pointer ${isActive ? 'active' : ''}`;
+                card.innerHTML = `
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-mono-tech px-1.5 py-0.5 rounded bg-black/50 text-emerald-300 border border-emerald-500/20">
+                                ${String(station.id).padStart(2, '0')}
+                            </span>
+                            <h4 class="text-xs sm:text-sm font-semibold text-white truncate">${station.name}</h4>
+                        </div>
+                        <p class="text-[11px] text-slate-400 truncate mt-1">${station.desc}</p>
+                    </div>
+                    <div class="shrink-0 flex flex-col items-end gap-1">
+                        <span class="text-[9px] font-mono-tech uppercase px-2 py-0.5 rounded-full bg-white/5 text-slate-300">
+                            ${station.genre.split(' ')[0]}
+                        </span>
+                        ${isActive && isPlaying ? '<span class="text-[10px] font-mono-tech text-emerald-400 animate-pulse">● LIVE</span>' : '<span class="text-[10px] font-mono-tech text-slate-500">M3U</span>'}
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    loadStation(realIdx, true);
+                });
+                stationListEl.appendChild(card);
+            });
+        }
+
+        // Load and Play Station
+        function loadStation(index, autoplay = true) {
+            currentIndex = (index + RADIO_STATIONS.length) % RADIO_STATIONS.length;
+            const st = RADIO_STATIONS[currentIndex];
+
+            currentStationName.textContent = st.name;
+            currentStationDesc.textContent = st.desc;
+            currentStreamUrl.value = st.url;
+            stationGenreBadge.textContent = st.genre.toUpperCase();
+            stationIndexBadge.textContent = `#${String(st.id).padStart(2, '0')}/${RADIO_STATIONS.length}`;
+
+            audio.src = st.url;
+            audio.volume = parseFloat(volumeSlider.value);
+
+            if (autoplay) {
+                playStream();
+            } else {
+                updatePlayUI(false, 'READY');
+            }
+            renderStations();
+        }
+
+        function playStream() {
+            initAudioContext();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            updatePlayUI(true, 'CONNECTING...');
+            audio.play().then(() => {
+                updatePlayUI(true, 'STREAMING LIVE');
+                renderStations();
+            }).catch((err) => {
+                console.warn('Playback notice:', err);
+                updatePlayUI(false, 'STREAM ERROR / RETRY');
+                showToast('Stream blocked or offline — try next channel');
+            });
+        }
+
+        function pauseStream() {
+            audio.pause();
+            updatePlayUI(false, 'PAUSED');
+            renderStations();
+        }
+
+        function updatePlayUI(playing, label) {
+            isPlaying = playing;
+            statusText.textContent = label;
+            if (playing) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse';
+                mainReceiverPanel.classList.add('flame-force-active');
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+                mainReceiverPanel.classList.remove('flame-force-active');
+            }
+        }
+
+        // Transport Event Listeners
+        playPauseBtn.addEventListener('click', () => {
+            if (isPlaying) pauseStream();
+            else playStream();
+        });
+
+        prevBtn.addEventListener('click', () => loadStation(currentIndex - 1, true));
+        nextBtn.addEventListener('click', () => loadStation(currentIndex + 1, true));
+
+        volumeSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            audio.volume = val;
+            volumePct.textContent = `${Math.round(val * 100)}%`;
+        });
+
+        muteBtn.addEventListener('click', () => {
+            audio.muted = !audio.muted;
+            volumePct.textContent = audio.muted ? 'MUTE' : `${Math.round(audio.volume * 100)}%`;
+        });
+
+        flameSlider.addEventListener('input', (e) => {
+            flameIntensity = parseFloat(e.target.value);
+            showToast(`Flame Force: ${Math.round(flameIntensity * 100)}%`);
+        });
+
+        // Copy Stream URL using execCommand fallback for iframe compatibility
+        copyUrlBtn.addEventListener('click', () => {
+            currentStreamUrl.select();
+            document.execCommand('copy');
+            showToast('Stream URL copied!');
+        });
+
+        // Export all 30 stations as a standard .M3U file
+        exportM3uBtn.addEventListener('click', () => {
+            let m3uContent = '#EXTM3U\n';
+            RADIO_STATIONS.forEach(st => {
+                m3uContent += `#EXTINF:-1,${st.name} - ${st.genre}\n${st.url}\n`;
+            });
+            const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'plasma_spectroscopic_30_stations.m3u';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Exported 30-channel .M3U!');
+        });
+
+        // Custom Stream Injector
+        document.getElementById('custom-stream-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('custom-name');
+            const urlInput = document.getElementById('custom-url');
+            const customName = nameInput.value.trim() || `Custom Frequency #${RADIO_STATIONS.length + 1}`;
+            const customUrl = urlInput.value.trim();
+            if (!customUrl) return;
+
+            RADIO_STATIONS.unshift({
+                id: RADIO_STATIONS.length + 1,
+                name: customName,
+                genre: 'World & Eclectic',
+                desc: 'User injected M3U / Direct audio stream',
+                url: customUrl
+            });
+            nameInput.value = '';
+            urlInput.value = '';
+            loadStation(0, true);
+            showToast('Custom M3U tuned!');
+        });
+
+        // Search & Genre Pills
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderStations();
+        });
+
+        document.querySelectorAll('.genre-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.genre-pill').forEach(p => {
+                    p.classList.remove('active', 'bg-emerald-500/25', 'text-emerald-200', 'border-emerald-400/50');
+                    p.classList.add('bg-white/5', 'text-slate-300', 'border-white/10');
+                });
+                btn.classList.add('active', 'bg-emerald-500/25', 'text-emerald-200', 'border-emerald-400/50');
+                btn.classList.remove('bg-white/5', 'text-slate-300', 'border-white/10');
+                currentGenre = btn.dataset.genre;
+                renderStations();
+            });
+        });
+
+        // =========================================================================
+        // 1. SPECTROSCOPIC DEEP SPACE BACKGROUND ENGINE
+        // =========================================================================
+        const spaceCanvas = document.getElementById('space-canvas');
+        const spaceCtx = spaceCanvas.getContext('2d');
+        let stars = [];
+        let spectralLines = [];
+
+        function resizeSpaceCanvas() {
+            spaceCanvas.width = window.innerWidth;
+            spaceCanvas.height = window.innerHeight;
+            initSpaceEntities();
+        }
+
+        function initSpaceEntities() {
+            stars = [];
+            const count = Math.floor((spaceCanvas.width * spaceCanvas.height) / 5500);
+            const spectralColors = ['#a7f3d0', '#34d399', '#38bdf8', '#c084fc', '#f472b6', '#fde047', '#ffffff'];
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * spaceCanvas.width,
+                    y: Math.random() * spaceCanvas.height,
+                    radius: Math.random() * 1.8 + 0.3,
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.18 + 0.03,
+                    color: spectralColors[Math.floor(Math.random() * spectralColors.length)],
+                    twinkle: Math.random() * 0.04 + 0.01
+                });
+            }
+
+            // Spectroscopic Emission/Absorption Band Lines
+            spectralLines = [];
+            for (let i = 0; i < 28; i++) {
+                spectralLines.push({
+                    xRatio: Math.random(),
+                    width: Math.random() * 3 + 1,
+                    hue: 135 + Math.random() * 160, // Emerald green to cyan/violet spectrum
+                    alpha: Math.random() * 0.18 + 0.04,
+                    drift: (Math.random() - 0.5) * 0.0004
+                });
+            }
+        }
+
+        let spaceTick = 0;
+        function renderSpectroscopicSpace() {
+            spaceTick += 0.012;
+            const w = spaceCanvas.width;
+            const h = spaceCanvas.height;
+
+            // Deep Space Gradient Backdrop
+            const bgGrad = spaceCtx.createRadialGradient(w * 0.5, h * 0.4, 50, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
+            bgGrad.addColorStop(0, '#091518');
+            bgGrad.addColorStop(0.45, '#050811');
+            bgGrad.addColorStop(1, '#020306');
+            spaceCtx.fillStyle = bgGrad;
+            spaceCtx.fillRect(0, 0, w, h);
+
+            // Spectroscopic Nebula Emission Bands (Vertical Diffraction Grating Rays)
+            spectralLines.forEach((line, idx) => {
+                line.xRatio += line.drift;
+                if (line.xRatio < 0) line.xRatio = 1;
+                if (line.xRatio > 1) line.xRatio = 0;
+
+                const x = line.xRatio * w;
+                const pulse = Math.sin(spaceTick * 2 + idx) * 0.5 + 0.5;
+                const boost = isPlaying ? (1 + simulatedEnergy * 0.9) : 1;
+                const grad = spaceCtx.createLinearGradient(x, 0, x, h);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(0.3, `hsla(${line.hue}, 85%, 55%, ${line.alpha * pulse * boost})`);
+                grad.addColorStop(0.5, `hsla(${line.hue}, 95%, 65%, ${line.alpha * 1.4 * boost})`);
+                grad.addColorStop(0.7, `hsla(${line.hue}, 85%, 55%, ${line.alpha * pulse * boost})`);
+                grad.addColorStop(1, 'transparent');
+
+                spaceCtx.fillStyle = grad;
+                spaceCtx.fillRect(x, 0, line.width * (1 + simulatedEnergy), h);
+            });
+
+            // Horizontal Spectroscopic Prism Rainbow Ribbon (Subtle)
+            const ribbonY = h * 0.5 + Math.sin(spaceTick * 0.5) * 40;
+            const prismGrad = spaceCtx.createLinearGradient(0, ribbonY, w, ribbonY);
+            prismGrad.addColorStop(0, 'rgba(16, 185, 129, 0)');
+            prismGrad.addColorStop(0.25, 'rgba(16, 185, 129, 0.08)');
+            prismGrad.addColorStop(0.5, 'rgba(56, 189, 248, 0.09)');
+            prismGrad.addColorStop(0.75, 'rgba(168, 85, 247, 0.07)');
+            prismGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+            spaceCtx.fillStyle = prismGrad;
+            spaceCtx.fillRect(0, ribbonY - 90, w, 180);
+
+            // Twinkling Spectral Stars
+            stars.forEach(star => {
+                star.y -= star.speed * (1 + simulatedEnergy * 2.5);
+                if (star.y < 0) {
+                    star.y = h;
+                    star.x = Math.random() * w;
+                }
+                star.alpha += star.twinkle;
+                const currentAlpha = Math.abs(Math.sin(star.alpha)) * 0.85 + 0.15;
+
+                spaceCtx.beginPath();
+                spaceCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                spaceCtx.fillStyle = star.color;
+                spaceCtx.globalAlpha = currentAlpha;
+                spaceCtx.fill();
+
+                // Spectroscopic diffraction cross on bright stars
+                if (star.radius > 1.55) {
+                    spaceCtx.strokeStyle = star.color;
+                    spaceCtx.lineWidth = 0.5;
+                    spaceCtx.beginPath();
+                    spaceCtx.moveTo(star.x - 6, star.y);
+                    spaceCtx.lineTo(star.x + 6, star.y);
+                    spaceCtx.stroke();
+                }
+            });
+            spaceCtx.globalAlpha = 1;
+
+            // Update Telemetry Wavelength Display
+            if (Math.random() < 0.08) {
+                const nm = (518 + Math.sin(spaceTick) * 24 + simulatedEnergy * 15).toFixed(1);
+                document.getElementById('telemetry-nm').textContent = `${nm} nm`;
+            }
+        }
+
+        // =========================================================================
+        // 2. GREEN FLAME FORCE PANEL PARTICLE ENGINE
+        // =========================================================================
+        const flameCanvas = document.getElementById('flame-panel-canvas');
+        const flameCtx = flameCanvas.getContext('2d');
+        let flameParticles = [];
+
+        function resizeFlameCanvas() {
+            const rect = mainReceiverPanel.getBoundingClientRect();
+            flameCanvas.width = rect.width;
+            flameCanvas.height = rect.height;
+        }
+
+        function spawnFlameParticle() {
+            const w = flameCanvas.width;
+            const h = flameCanvas.height;
+            return {
+                x: Math.random() * w,
+                y: h + 10,
+                vx: (Math.random() - 0.5) * 1.4,
+                vy: -(Math.random() * 2.2 + 1.2) * flameIntensity,
+                size: Math.random() * 18 + 8,
+                life: 1,
+                decay: Math.random() * 0.016 + 0.008,
+                hue: 142 + Math.random() * 25 // Emerald to Mint Green
+            };
+        }
+
+        function renderGreenFlameForce() {
+            const w = flameCanvas.width;
+            const h = flameCanvas.height;
+            flameCtx.clearRect(0, 0, w, h);
+
+            const targetCount = Math.floor((isPlaying ? 48 : 22) * flameIntensity);
+            while (flameParticles.length < targetCount) {
+                flameParticles.push(spawnFlameParticle());
+            }
+
+            flameCtx.globalCompositeOperation = 'screen';
+            for (let i = flameParticles.length - 1; i >= 0; i--) {
+                const p = flameParticles[i];
+                p.x += p.vx + Math.sin(p.y * 0.03) * 0.6;
+                p.y += p.vy * (1 + simulatedEnergy * 0.8);
+                p.life -= p.decay;
+                p.size *= 0.985;
+
+                if (p.life <= 0 || p.size < 1) {
+                    flameParticles.splice(i, 1);
+                    continue;
+                }
+
+                const grad = flameCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+                grad.addColorStop(0, `hsla(${p.hue}, 100%, 75%, ${p.life * 0.55})`);
+                grad.addColorStop(0.5, `hsla(${p.hue}, 90%, 45%, ${p.life * 0.28})`);
+                grad.addColorStop(1, 'transparent');
+
+                flameCtx.fillStyle = grad;
+                flameCtx.beginPath();
+                flameCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                flameCtx.fill();
+            }
+            flameCtx.globalCompositeOperation = 'source-over';
+        }
+
+        // =========================================================================
+        // 3. SPECTRAL FLUX AUDIO VISUALIZER
+        // =========================================================================
+        const visCanvas = document.getElementById('visualizer-canvas');
+        const visCtx = visCanvas.getContext('2d');
+
+        function resizeVisualizerCanvas() {
+            const rect = visCanvas.parentElement.getBoundingClientRect();
+            visCanvas.width = rect.width;
+            visCanvas.height = rect.height;
+        }
+
+        let visPhase = 0;
+        function renderVisualizer() {
+            visPhase += 0.06;
+            const w = visCanvas.width;
+            const h = visCanvas.height;
+            visCtx.clearRect(0, 0, w, h);
+
+            // Subtle Spectroscopic Grid
+            visCtx.strokeStyle = 'rgba(52, 211, 153, 0.08)';
+            visCtx.lineWidth = 1;
+            for (let gx = 0; gx < w; gx += 28) {
+                visCtx.beginPath();
+                visCtx.moveTo(gx, 0);
+                visCtx.lineTo(gx, h);
+                visCtx.stroke();
+            }
+
+            const bars = 48;
+            const barWidth = (w / bars) - 2;
+            let energySum = 0;
+
+            let hasRealAudio = false;
+            if (analyser && dataArray && isPlaying) {
+                analyser.getByteFrequencyData(dataArray);
+                const sumCheck = dataArray.reduce((a, b) => a + b, 0);
+                if (sumCheck > 0) hasRealAudio = true;
+            }
+
+            for (let i = 0; i < bars; i++) {
+                let value = 0.08;
+                if (isPlaying) {
+                    if (hasRealAudio) {
+                        value = dataArray[i] / 255;
+                    } else {
+                        // Harmonic organic spectral simulation when cross-origin stream restricts FFT
+                        const wave1 = Math.sin(visPhase + i * 0.28) * 0.35 + 0.4;
+                        const wave2 = Math.cos(visPhase * 1.7 - i * 0.15) * 0.25 + 0.25;
+                        const envelope = Math.sin((i / bars) * Math.PI);
+                        value = Math.min(1, (wave1 * wave2 * 1.9) * envelope + 0.12);
+                    }
+                } else {
+                    value = 0.06 + Math.sin(visPhase * 0.5 + i * 0.2) * 0.03;
+                }
+
+                energySum += value;
+                const barHeight = Math.max(4, value * (h - 18));
+                const x = i * (barWidth + 2) + 1;
+                const y = h - barHeight;
+
+                // Green Flame Gradient per Bar
+                const barGrad = visCtx.createLinearGradient(x, h, x, y);
+                barGrad.addColorStop(0, '#047857');
+                barGrad.addColorStop(0.55, '#10b981');
+                barGrad.addColorStop(1, '#a7f3d0');
+
+                visCtx.fillStyle = barGrad;
+                visCtx.beginPath();
+                visCtx.roundRect(x, y, barWidth, barHeight, [4, 4, 0, 0]);
+                visCtx.fill();
+            }
+
+            simulatedEnergy = energySum / bars;
+        }
+
+        // Master Animation Loop
+        function animateAll() {
+            renderSpectroscopicSpace();
+            renderGreenFlameForce();
+            renderVisualizer();
+            requestAnimationFrame(animateAll);
+        }
+
+        // Handle Window Resize
+        function handleResize() {
+            resizeSpaceCanvas();
+            resizeFlameCanvas();
+            resizeVisualizerCanvas();
+        }
+
+        window.addEventListener('resize', handleResize);
+        window.onload = () => {
+            handleResize();
+            loadStation(0, false);
+            animateAll();
+        };
+    </script>
+</body>
+</html>
